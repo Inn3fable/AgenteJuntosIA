@@ -1,0 +1,11 @@
+# -- Entornos virtuales
+.AgenteJuntosIA
+
+
+# -- Variables de entorno
+.env
+
+
+# --ingnorar ide
+.idea/
+__pycache__/

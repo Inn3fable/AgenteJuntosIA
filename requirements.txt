@@ -1,0 +1,4 @@
+# -- Backend IA
+# -- Agente IA
+# -- Ecosistema Lang chain
+#
