@@ -4,6 +4,7 @@
 
 # -- Variables de entorno
 .env
+.git
 
 
 # --ingnorar ide
