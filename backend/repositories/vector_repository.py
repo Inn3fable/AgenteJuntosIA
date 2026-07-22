@@ -18,9 +18,10 @@ class VectorRepository(VectorRepositoryInterface):
         """
         Verifica si existe un índice FAISS almacenado.
         """
-        index_file = (Path(settings.VECTORSTORE_PATH) / "index.faiss")
+        index_file = Path(settings.VECTORSTORE_PATH) / "index.faiss"
         return index_file.exists()
 
+    '''
     def create(self, documents: list[Document]):
         """
         Crea el índice FAISS desde documentos.
@@ -42,6 +43,14 @@ class VectorRepository(VectorRepositoryInterface):
             self.embedding_model
         )
         self._create_retriever()
+    '''
+    def create(self, documents):
+        self.vectorstore = FAISS.from_documents(
+            documents,
+            self.embedding_model
+        )
+        self._create_retriever()
+
 
     def save(self):
         """
@@ -68,18 +77,35 @@ class VectorRepository(VectorRepositoryInterface):
         """
         Crea el retriever una sola vez.
         """
-        self.retriever = (
-            self.vectorstore.as_retriever(
-                search_type=
-                settings.SEARCH_TYPE,
+        self.retriever = self.vectorstore.as_retriever(
+                search_type=settings.SEARCH_TYPE,
                 search_kwargs={
-                    "score_threshold":
-                    settings.SCORE_THRESHOLD,
-                    "k":
-                    settings.TOP_K
+                    "score_threshold":settings.SCORE_THRESHOLD,
+                    "k":settings.TOP_K
                 }
             )
+
+
+    def search(self, query: str):
+
+        results = self.vectorstore.similarity_search(
+            query,
+            k=settings.TOP_K
         )
+
+        print("\n===== CONSULTA =====")
+        print(query)
+
+        print("\n===== DOCUMENTOS RECUPERADOS =====")
+
+        for doc in results:
+            print("--------------------")
+            print(doc.content[:500])
+
+        return results
+
+
+'''
 
     def search(self, query: str) -> list[Document]:
         """
@@ -106,3 +132,4 @@ class VectorRepository(VectorRepositoryInterface):
             )
         return documents
 
+'''

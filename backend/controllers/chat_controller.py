@@ -1,5 +1,6 @@
-from backend.models.chat_response import ChatResponse, Citation
 
+from backend.models.chat_response import ChatResponse
+from backend.models.citation import Citation
 
 class ChatController:
     """
@@ -8,58 +9,46 @@ class ChatController:
     """
 
     def __init__(self, workflow_service):
-
-    self.workflow_service = workflow_service
+        self.workflow_service = workflow_service
 
     def ask(self, question: str) -> ChatResponse:
         """
         Ejecuta una consulta del usuario.
         """
-        result = (
-            self.workflow_service
-            .execute(
-                question
-            )
-        )
+        result = (self.workflow_service.execute(question))
 
-    citations = []
+        citations = []
 
-    documents = result.get(
-                            "citacion",
-                            []
+        documents = result.get("citacion",[])
+
+        for citation in documents:
+                # Si viene del RAG como modelo externo
+                citations.append(
+                    Citation(
+                        source=getattr(
+                                        citation,
+                                        "source",
+                                        "Desconocido"
+                                        ),
+                        page=getattr(
+                                        citation,
+                                        "page",
+                                        None
+                                        ),
+
+                        content=getattr(
+                                        citation,
+                                        "content",
+                                        ""
+                                        )
                             )
+                )
 
-    for citation in documents:
-            # Si viene del RAG como modelo externo
-            citations.append(
-                Citation(
-                    source=getattr(
-                                    citation,
-                                    "source",
-                                    "Desconocido"
-                                    ),
-                    page=getattr(
-                                    citation,
-                                    "page",
-                                    None
-                                    ),
-
-                    content=getattr(
-                                    citation,
-                                    "content",
-                                    ""
-                                    )
-                        )
+        return ChatResponse(
+            answer=result.get("respuesta", "No lo se!!"),
+            citations=citations,
+            success=True
             )
-
-    return ChatResponse(
-                        answer=result.get(
-                                        "respuesta",
-                                        "No lo se!!"
-                        ),
-                        citations=citations,
-                        success=True
-        )
 
 
 

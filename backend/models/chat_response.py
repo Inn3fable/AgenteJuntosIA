@@ -1,13 +1,7 @@
 from typing import List, Optional
-from pydantic import BaseModel, field
+from pydantic import BaseModel, Field
+from backend.models.citation import Citation
 
-class Citation(BaseModel):
-    """
-    Información del docuemto usado por el RAG.
-    """
-    source : str
-    page: Opctional[int] = None
-    Content: str
 
 class ChatResponse(BaseModel):
     """

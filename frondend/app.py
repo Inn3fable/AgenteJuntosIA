@@ -1,17 +1,21 @@
 import sys
 from pathlib import Path
-impot streamlit as st
-from backend.factories.rag_factory import RAGFactory
-from backdnd.controllers.chat_controller import ChatController
+import streamlit as st
+import os
 
+print(os.getcwd())
+print(sys.path)
 
 # =====================================================
 # CONFIGURAR ROOT DEL PROYECTO
 # =====================================================
-ROOT_DIR = Path(__file__).resolve().parent.perent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
+
+from backend.factories.rag_factory import RAGFactory
+from backend.controllers.chat_controller import ChatController
 
 # =====================================================
 # CONFIGURAR ROOT DEL PROYECTO
@@ -19,7 +23,7 @@ if str(ROOT_DIR) not in sys.path:
 st.set_page_config(
     page_title = "JuntosIA",
     page_icon = "🤖",
-    layaut = "wide"
+    layout = "wide"
         )
 
 # =====================================================
@@ -28,9 +32,8 @@ st.set_page_config(
 
 @st.cache_resource
 def load_application():
-        """
+    """
     Inicializa una sola vez:
-
     - Gemini
     - Embeddings
     - FAISS
@@ -39,11 +42,10 @@ def load_application():
     - Triage
     - Workflow
     - Gestión documental
-
     """
     application  = (RAGFactory.create_application())
     chat_controller = ChatController(application["workflow"])
-    document_controller = appplication["documents"]
+    document_controller = application["documents"]
 
     return (chat_controller, document_controller)
 
@@ -55,8 +57,8 @@ def load_application():
 try:
     (chat_controller, document_controller) = load_application()
 
-except Exception es error:
-    st.exeption(error)
+except Exception as error:
+    st.exception(error)
     st.stop()
 
 
@@ -67,9 +69,9 @@ with st.sidebar:
     st.title("📚 Base documental")
 
     try:
-        document = document_controller.list_documents()
+        documents = document_controller.list_documents()
 
-        if document:
+        if documents:
             for document in documents:
                 st.write(f"📄 {document}")
         else:
@@ -78,7 +80,7 @@ with st.sidebar:
     except Exception as error:
         st.error(f"Error cargando documentos: {error}")
 
-    st.devider()
+    st.divider()
 
     uploaded_file = st.file_uploader("Agregar documento PDF", type=["pdf"])
 
@@ -149,13 +151,13 @@ if question:
             except Exception as error:
                 answer = (f"Error procesando pregunta: {error}")
                 st.error(answer)
+        st.session_state.messages.append(
+            {
+                "role":"assistant",
+                "content":answer
+            }
+        )
 
-    st.session_state.messages.append(
-        {
-            "role":"assistant"
-            "content":answer
-        }
-    )
 
 
 

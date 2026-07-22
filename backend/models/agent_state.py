@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-form .triage import Triage
+from .triage import Triage
 from .citation import Citation
 
 class AgentState(BaseModel):

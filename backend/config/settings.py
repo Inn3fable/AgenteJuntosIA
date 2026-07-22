@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from detenv import load_detenv
+from dotenv import load_dotenv
 
-load_detenv()
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -37,7 +37,7 @@ class Settings:
     SEARCH_TYPE = "similarity_score_threshold"
     TOP_K = 4
     SCORE_THRESHOLD = 0.1
-    SEARCH_SCORE_THRESHOLD = 0.1
+    SEARCH_SCORE_THRESHOLD = 0.35
 
     # ==========================
     # RAG

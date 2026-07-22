@@ -18,7 +18,7 @@ class VectorRepositoryInterface(ABC):
 
     @abstractmethod
     def load(self):
-        Carga un índice existente.
+        # Carga un índice existente.
         pass
 
     @abstractmethod

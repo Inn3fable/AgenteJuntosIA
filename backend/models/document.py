@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dist
+from typing import Dict
 
 
 class Document(BaseModel):

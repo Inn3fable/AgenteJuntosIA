@@ -66,7 +66,3 @@ class RAGFactory:
         workflow_service = (WorkflowService(triage_service, rag_service))
 
         return {"workflow": workflow_service, "documents": document_controller}
-
-
-
-
