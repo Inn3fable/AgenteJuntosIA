@@ -1,112 +1,51 @@
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_classic.chains.combine_documents import  create_stuff_documents_chain
 from backend.config.settings import settings
-from backend.models.citation import Citation
+from backend.repositories.vector_repository import VectorRepository
+from backend.services.llm_service import LLMService
+
 
 class RAGService:
-    """
-    Servicio principal de recuperación y generación de respuestas.
-    """
-    def __init__(self, llm_service, vector_repository):
-        self.llm = (llm_service.get_model())
-        self.vector_repository = (vector_repository)
-        self.document_chain = (self._create_document_chain())
+    def __init__(self, vector_repository: VectorRepository, llm_service: LLMService):
+        self.vector_repository = vector_repository
+        self.llm_service = llm_service
 
-    def _create_document_chain(self):
+    def retrieve_context(self, question: str):
         """
-        Construye la cadena RAG.
+        Recupera los fragmentos más relevantes usando el TOP_K definido en settings (TOP_K = 8).
         """
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    """
-                    Eres el especialista del proceso de actualización del programa Juntos.
-                    Responde siempre utilizando la información proporcionada en los documentos.
-                    Si la información no existe, responde solamente: No lo se!!
-                    Contexto:{context}
-                    """
-                ),
-                (
-                    "human",
-                    "{input}"
-                )
-            ]
-        )
-        return create_stuff_documents_chain(
-            self.llm,
-            prompt,
-            document_variable_name="context"
-        )
+        return self.vector_repository.search(question, top_k=settings.TOP_K)
 
-    def ask(self, question: str ) -> dict:
+    def generate_answer(self, question: str, context: str) -> str:
         """
-        Ejecuta una consulta RAG completa.
+        Genera una respuesta completa y explicativa a partir del contexto recuperado.
         """
-        documents = (
-            self.vector_repository
-            .search(question)
-        )
-        if not documents:
-            return {
-                "answer":
-                settings.NO_ANSWER,
-                "citations": [],
-                "success": False
-            }
-        langchain_documents = []
+        prompt = f"""Eres el Asistente Virtual institucional experto en normativas y procedimientos.
+Tu objetivo es responder a la consulta del usuario de forma EXHAUSTIVA, COMPLETA y DETALLADA, utilizando ÚNICAMENTE la información del contexto proporcionado.
 
-        for document in documents:
-            from langchain_core.documents import Document
-            langchain_documents.append(
-                Document(
-                    page_content=document.content,
-                    metadata=document.metadata
-                )
-            )
+REGLAS DE RESPUESTA OBLIGATORIAS:
+1. NO RESUMAS en una sola frase ni omitas detalles si el contexto contiene explicaciones extensas.
+2. Si el concepto consultado incluye características, plataformas electrónicas, entidades involucradas (como RENIEC, gobiernos locales, etc.), frecuencia de actualización, o listas de datos que contiene (nombres, DNI, tipo de seguro, etc.), DEBES INCLUIRLOS TODOS EN TU RESPUESTA.
+3. Estructura la respuesta usando viñetas o párrafos claros para facilitar la lectura.
+4. Mantén un tono formal, técnico e institucional.
+5. Si la información solicitada NO se encuentra expresamente en el contexto, responde estrictamente: "{settings.NO_ANSWER}"
 
-        answer = (
-            self.document_chain.invoke(
-                {
-                    "input": question,
-                    "context":
-                    langchain_documents
-                }
-            )
-        )
+================ CONTEXTO RECUPERADO ================
+{context}
+=====================================================
 
-        citations = (
-            self._build_citations(
-                documents
-            )
-        )
+Consulta del usuario: {question}
 
-        if answer.strip() == settings.NO_ANSWER:
-            return {
-                "answer":
-                settings.NO_ANSWER,
-                "citations": [],
-                "success": False
-            }
+Respuesta detallada:"""
 
-        return {
-            "answer": answer,
-            "citations": citations,
-            "success": True
-        }
+        response = self.llm_service.invoke(prompt)
 
-    def _build_citations(self, documents) -> list[Citation]:
-        """
-        Convierte documentos en citas.
-        """
-        citations = []
-        for document in documents:
-            citations.append(
-                Citation(
-                    source=document.source,
-                    page=document.page,
-                    content=document.content
-                )
-            )
-        return citations
+        # Manejo de la respuesta independientemente de si el LLM retorna un string o un objeto AIMessage
+        if hasattr(response, "content"):
+            content = response.content
+            if isinstance(content, list):
+                return "".join(
+                    item.get("text", "") if isinstance(item, dict) else str(item)
+                    for item in content
+                ).strip()
+            return str(content).strip()
 
+        return str(response).strip()

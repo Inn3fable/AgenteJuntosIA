@@ -1,94 +1,50 @@
+
 from typing import Dict, Any
+from backend.graph.state import AgentState
+
 
 class WorkflowService:
     """
-    Orquesta el flujo del agente.
+    Servicio encargado de orquestar la ejecución del grafo compilado de LangGraph
+    y de unificar la respuesta en un formato consistente para la capa superior.
     """
-    def __init__(self, triage_service, rag_service):
-        self.triage_service = triage_service
-        self.rag_service = rag_service
+    def __init__(self, compiled_graph):
+        self.graph = compiled_graph
 
-    def execute(self,question: str) -> Dict[str, Any]:
-        """
-        Ejecuta el flujo completo.
-        """
-        # ==========================
-        # TRIAJE
-        # ==========================
-        triage_result = (self.triage_service.analyze(question))
-
-        decision = (triage_result.decision)
-        # ==========================
-        # AUTO RESOLVER
-        # ==========================
-        if decision == "AUTO RESOLVER":
-            rag_result = (self.rag_service.ask(question))
-
-            return {
-                "respuesta":
-                    rag_result.get(
-                        "answer",
-                        "No lo se!!"
-                    ),
-                "citacion":
-                    rag_result.get(
-                        "citations",
-                        []
-                    ),
-                "triaje":
-                    triage_result
-            }
-        # ==========================
-        # PEDIR INFORMACIÓN
-        # ==========================
-        elif decision == "PEDIR INFO":
-            campos = (triage_result.missing_fields)
-            if campos:
-                respuesta = (
-                        "Necesito la siguiente información "
-                        "para poder ayudarte:\n\n"
-                        +
-                        "\n".join(
-                            [
-                                f"- {campo}"
-                                for campo in campos
-                            ]
-                        )
-                )
-            else:
-                respuesta = (
-                    "Necesito más información "
-                    "sobre tu consulta."
-                )
-            return {
-                "respuesta": respuesta,
-                "citacion": [],
-                "triaje": triage_result
-            }
-        # ==========================
-        # ABRIR TICKET
-        # ==========================
-        elif decision == "ABRIR TICKET":
-            return {
-                "respuesta":
-                    (
-                        "Se debe abrir un ticket "
-                        f"con prioridad {triage_result.urgency}."
-                    ),
-                "citacion":
-                    [],
-                "triaje":
-                    triage_result
-            }
-        # ==========================
-        # FALLBACK
-        # ==========================
-        return {
-            "respuesta":
-                "No pude procesar la solicitud.",
-            "citacion":
-                [],
-            "triaje":
-                triage_result
+    def execute(self, question: str) -> Dict[str, Any]:
+        # Estado inicial limpio
+        initial_state: AgentState = {
+            "question": question,
+            "pregunta": question,
+            "triage": None,
+            "decision": None,
+            "answer": None,
+            "respuesta": None,
+            "contexto": [],
+            "citations": [],
+            "citacion": [],
+            "rag_success": False,
+            "final_action": None
         }
 
+        # Ejecución del grafo completo
+        final_state = self.graph.invoke(initial_state)
+
+        # Extracción segura de la respuesta
+        respuesta = (
+            final_state.get("answer") or
+            final_state.get("respuesta") or
+            "No se pudo procesar una respuesta adecuada para su consulta."
+        )
+
+        # Extracción segura de las citas
+        citacion = (
+            final_state.get("citations") if final_state.get("citations") is not None
+            else final_state.get("citacion", [])
+        )
+
+        return {
+            "respuesta": respuesta,
+            "citacion": citacion,
+            "triaje": final_state.get("triage")
+        }

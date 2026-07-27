@@ -1,52 +1,38 @@
+from langchain_core.prompts import ChatPromptTemplate
 from backend.models.triage import Triage
 
 
 class TriageService:
-    """
-    Servicio encargado del análisis inicial de las preguntas del usuario.
-    """
     TRIAGE_PROMPT = """
-                    Eres un especialista en el triaje del asistente JuntosIA.
-                    Analiza el mensaje del usuario y determina la acción correcta.
-                    Debes devolver únicamente un JSON con esta estructura:
-                    {
-                        "decision": "AUTO RESOLVER" | "PEDIR INFO" | "ABRIR TICKET",
-                        "urgency": "BAJA" | "MEDIA" | "ALTA", "missing_fields":[]
-                    }
-                    Reglas:
-                        AUTO RESOLVER: Preguntas claras sobre procedimientos, reglas o información existente en los documentos.
-                        PEDIR INFO: Cuando la pregunta no tiene suficiente contexto o faltan datos.
-                        ABRIR TICKET: Solicitudes de excepción, aprobación, autorización, acceso especial o solicitudes explícitas de ticket.
-                    Analiza el siguiente mensaje:
-                    """
-    def __init__(self,llm_service):
-        self.llm = (llm_service.get_model())
-        self.structured_llm = ( self.llm.with_structured_output(Triage))
+    Eres un especialista en el triaje del asistente JuntosIA.
+    Analiza la consulta del usuario y clasifícala en una de las siguientes opciones:
+
+    - AUTO RESOLVER: Preguntas sobre requisitos, normativas, guías o pasos explicados en manuales/documentos.
+    - PEDIR INFO: Preguntas incompletas que requieran datos específicos adicionales del usuario (ej. números de DNI, fechas particulares sin especificar).
+    - ABRIR TICKET: Excepciones, reportes de errores de sistema, solicitudes de permisos o aprobación explícita.
+    """
+
+    def __init__(self, llm_service):
+        self.llm = llm_service.get_model()
+        self.structured_llm = self.llm.with_structured_output(Triage)
+        self.prompt = ChatPromptTemplate.from_messages([
+            ("system", self.TRIAGE_PROMPT),
+            ("human", "{message}")
+        ])
 
     def analyze(self, message: str) -> Triage:
-        """
-        Analiza una pregunta y devuelve la clasificación.
-        """
         try:
-            result = (
-                self.structured_llm.invoke(
-                    [
-                        (
-                            "system", self.TRIAGE_PROMPT
-                        ),
-                        (
-                            "human", message
-                        )
-                    ]
-                )
-            )
+            chain = self.prompt | self.structured_llm
+            result = chain.invoke({"message": message})
             return result
-
         except Exception as error:
-            print(f"Error en triaje: {error}")
+            print(f"⚠️ [TriageService] Error procesando triaje: {error}")
             return Triage(
-                decision="ABRIR TICKET",
+                decision="AUTO RESOLVER",
                 urgency="MEDIA",
                 missing_fields=[]
             )
 
+    def evaluate(self, message: str) -> Triage:
+        """Alias de compatibilidad para evitar AttributeError si se llama evaluate"""
+        return self.analyze(message)

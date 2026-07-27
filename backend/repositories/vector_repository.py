@@ -1,135 +1,74 @@
+import os
 from pathlib import Path
+from typing import List, Optional
 from langchain_community.vectorstores import FAISS
-from backend.config.settings import settings
-from backend.models.document import Document
-from backend.interfaces.vector_repository_interface import VectorRepositoryInterface
 from langchain_core.documents import Document as LCDocument
+
+from backend.config.settings import settings
+from backend.interfaces.vector_repository_interface import VectorRepositoryInterface
+
 
 class VectorRepository(VectorRepositoryInterface):
     """
-    Implementación concreta del repositorio vectorial usando FAISS.
+    Repositorio vectorial FAISS ajustado estrictamente a la arquitectura del proyecto.
     """
-    def __init__(self, embedding_model):
-        self.embedding_model = embedding_model
-        self.vectorstore = None
-        self.retriever = None
+
+    def __init__(self, embedding_service):
+        self.embedding_service = embedding_service
+        self.vectorstore_path = str(settings.VECTORSTORE_PATH)
+        self.vectorstore: Optional[FAISS] = None
+
+        # Cargar automáticamente si los archivos ya existen en disco
+        if self.exists():
+            self.load()
+
+    def _get_embedding_instance(self):
+        """Obtiene la instancia real de HuggingFaceEmbeddings mediante Lazy Loading."""
+        if hasattr(self.embedding_service, "get_model"):
+            return self.embedding_service.get_model()
+        elif hasattr(self.embedding_service, "get_embeddings"):
+            return self.embedding_service.get_embeddings()
+        return self.embedding_service
 
     def exists(self) -> bool:
-        """
-        Verifica si existe un índice FAISS almacenado.
-        """
-        index_file = Path(settings.VECTORSTORE_PATH) / "index.faiss"
-        return index_file.exists()
+        """Verifica si existe el índice FAISS guardado."""
+        index_file = Path(self.vectorstore_path) / "index.faiss"
+        pkl_file = Path(self.vectorstore_path) / "index.pkl"
+        return index_file.exists() and pkl_file.exists()
 
-    '''
-    def create(self, documents: list[Document]):
-        """
-        Crea el índice FAISS desde documentos.
-        """
-        langchain_documents = []
-        for document in documents:
-            langchain_documents.append(
-                LCDocument(
-                    page_content=document.content,
-                    metadata={
-                        "source": document.source,
-                        "page": document.page,
-                        **document.metadata
-                    }
-                )
-            )
-        self.vectorstore = FAISS.from_documents(
-            langchain_documents,
-            self.embedding_model
-        )
-        self._create_retriever()
-    '''
-    def create(self, documents):
-        self.vectorstore = FAISS.from_documents(
-            documents,
-            self.embedding_model
-        )
-        self._create_retriever()
-
+    def create(self, documents: List[LCDocument]):
+        """Crea el vectorstore en memoria."""
+        if not documents:
+            return
+        embeddings = self._get_embedding_instance()
+        self.vectorstore = FAISS.from_documents(documents, embeddings)
 
     def save(self):
-        """
-        Guarda el índice FAISS.
-        """
-        if self.vectorstore is None:
-            raise Exception("No existe vectorstore para guardar")
-
-        Path(settings.VECTORSTORE_PATH).mkdir(parents=True, exist_ok=True)
-        self.vectorstore.save_local(str(settings.VECTORSTORE_PATH))
+        """Guarda físicamente el índice en el disco."""
+        if self.vectorstore is not None:
+            Path(self.vectorstore_path).mkdir(parents=True, exist_ok=True)
+            self.vectorstore.save_local(self.vectorstore_path)
 
     def load(self):
-        """
-        Carga un índice FAISS existente.
-        """
-        self.vectorstore = FAISS.load_local(
-            str(settings.VECTORSTORE_PATH),
-            self.embedding_model,
-            allow_dangerous_deserialization=True
-        )
-        self._create_retriever()
-
-    def _create_retriever(self):
-        """
-        Crea el retriever una sola vez.
-        """
-        self.retriever = self.vectorstore.as_retriever(
-                search_type=settings.SEARCH_TYPE,
-                search_kwargs={
-                    "score_threshold":settings.SCORE_THRESHOLD,
-                    "k":settings.TOP_K
-                }
+        """Carga el índice FAISS desde el disco."""
+        if self.exists():
+            embeddings = self._get_embedding_instance()
+            self.vectorstore = FAISS.load_local(
+                self.vectorstore_path,
+                embeddings,
+                allow_dangerous_deserialization=True
             )
 
+    def search(self, query: str, top_k: Optional[int] = None) -> List[LCDocument]:
+        """Busca por similitud respetando el parámetro top_k."""
+        k = top_k if top_k is not None else settings.TOP_K
 
-    def search(self, query: str):
+        if self.vectorstore is None:
+            if self.exists():
+                self.load()
+            else:
+                return []
 
-        results = self.vectorstore.similarity_search(
-            query,
-            k=settings.TOP_K
-        )
-
-        print("\n===== CONSULTA =====")
-        print(query)
-
-        print("\n===== DOCUMENTOS RECUPERADOS =====")
-
-        for doc in results:
-            print("--------------------")
-            print(doc.content[:500])
-
-        return results
+        return self.vectorstore.similarity_search(query, k=k)
 
 
-'''
-
-    def search(self, query: str) -> list[Document]:
-        """
-        Busca documentos relacionados.
-        """
-        if self.retriever is None: raise Exception("Retriever no inicializado")
-        results = (self.retriever.invoke(query))
-        documents = []
-        for result in results:
-            documents.append(
-                Document(
-                    id="",
-                    content=result.page_content,
-                    source=result.metadata.get(
-                        "source",
-                        ""
-                    ),
-                    page=result.metadata.get(
-                        "page",
-                        None
-                    ),
-                    metadata=result.metadata
-                )
-            )
-        return documents
-
-'''

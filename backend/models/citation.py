@@ -1,8 +1,10 @@
-from pydantic import BaseModel, Field
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
+
 
 class Citation(BaseModel):
-    ""
+    model_config = ConfigDict(from_attributes=True)
 
-    source: str = Field(description = "Archivo origen")
-    page: int | None = Field(default = None)
-    content: str = Field(description="Fragmento utilizado como evidencia")
+    source: str
+    page: Optional[int] = None
+    content: str

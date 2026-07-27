@@ -3,28 +3,48 @@ from uuid import uuid4
 from langchain_community.document_loaders import PyMuPDFLoader
 from backend.models.document import Document
 
+
 class PDFLoader:
     """
-    Loader encargado de leer archivos PDF
-    y convertirlos al modelo interno Documentos.
+    Carga archivos PDF de forma rápida y los transforma en el modelo interno Document.
     """
+
     def load(self, file_path: Path) -> list[Document]:
-        #Carga un PDF y devuelve documentos procesados.
-        documents = []
-        loader = PyMuPDFLoader(str(file_path))
+        file_path_obj = Path(file_path) if isinstance(file_path, str) else file_path
+
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"No se encontró el archivo en la ruta: {file_path_obj}")
+
+        # PyMuPDFLoader extrae todas las páginas rápidamente
+        loader = PyMuPDFLoader(str(file_path_obj))
         pages = loader.load()
 
-        for page in pages:
-            document = Document(
-                id=str(uuid4()),
-                content=page.page_content,
-                source=str(file_path),
-                page=page.metadata.get(
-                                        "page",
-                                        None
-                                    ),
-                metadata=page.metadata
+        documents = []
+        for idx, page in enumerate(pages):
+            content = page.page_content.strip() if page.page_content else ""
+            if not content:
+                continue
+
+            # Ajuste de página base 1
+            raw_page = page.metadata.get("page", idx)
+            page_num = (raw_page + 1) if isinstance(raw_page, int) else (idx + 1)
+
+            # Preservar metadatos
+            meta = dict(page.metadata) if page.metadata else {}
+            meta.update({
+                "source": file_path_obj.name,
+                "page": page_num,
+                "total_pages": len(pages)
+            })
+
+            documents.append(
+                Document(
+                    id=str(uuid4()),
+                    content=content,
+                    source=file_path_obj.name,
+                    page=page_num,
+                    metadata=meta
+                )
             )
-            documents.append(document)
 
         return documents
