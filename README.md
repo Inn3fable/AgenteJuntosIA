@@ -1,34 +1,21 @@
 # 🤝 Agente Virtual JUNTOS IA - RAG Basado en Arquitectura MVC y LangGraph
-
 Sistema Inteligente de Asistencia Virtual basado en **RAG (Retrieval-Augmented Generation)** y **Grafos de Estado con LangGraph**, diseñado bajo el patrón de arquitectura **MVC (Modelo-Vista-Controlador)** para atender consultas operativas y procedimientos del **Programa Nacional JUNTOS (MIDIS)** a partir de sus directivas técnicas y documentos normativos oficiales.
-
 ---
-
 ## 📌 Visión General del Proyecto
-
 El sistema automatiza el proceso de consultas y la resolución de dudas sobre los trámites del Programa JUNTOS (tales como la actualización de información de hogares, afiliación, desafiliación y gestión de transferencias). Combina modelos de embeddings locales de alto rendimiento, un LLM generativo avanzado (**Google Gemini**) y una orquestación de agentes con **LangGraph** para garantizar respuestas precisas, contextualizadas y fundamentadas con citas de las páginas del documento de origen.
-
 ---
-
 ## 🏗️ Arquitectura del Sistema (Patrón MVC)
-
 El proyecto adopta un enfoque **Modelo-Vista-Controlador (MVC)** enriquecido con **Patrón Repositorio**, **Inyección de Dependencias (Factory Pattern)** y **Capas de Servicios e Interfaces**:
-
 * **Modelo (`backend/models`):** Define los esquemas de datos del dominio (`agent_state.py`, `document.py`, `chat_response.py`, `citation.py`, `triage.py`, `user.py`).
 * **Vista (`frontend`):** Interfaz web interactiva construida con **Streamlit** (`app.py`), encargada del renderizado del chat y la interacción con el usuario final.
 * **Controladores (`backend/controllers`):** Orquestan las peticiones entre la Vista y los Servicios del Backend (`chat_controller.py`, `document_controller.py`).
 * **Servicios e Interfaces (`backend/services` & `backend/interfaces`):** Lógica de negocio (indexación, embeddings, LLM, triaje, orquestación RAG).
 * **Repositorios (`backend/repositories`):** Capa de abstracción para la gestión de persistencia vectorial en FAISS y documentos.
 * **Grafo de Estado (`backend/graph`):** Define los nodos, clasificadores y rutas de decisión condicionales bajo **LangGraph**.
-
 ---
-
 ## 📐 Flujo del Agente RAG (LangGraph)
-
 El procesamiento de las consultas sigue el flujo condicional representado en `documents/ModeloRag.png`:
-
-![Diagrama del Modelo RAG](documents/ModeloRag.png)
-
+![Diagrama del Modelo RAG](./documents/modelo_rag.png)
 ### Explicación de los Nodos del Grafo:
 1. **`__start__` ➔ `triaje`:** El nodo de triaje evalúa la intención de la consulta ingresada por el usuario.
 2. **Evaluación de Rutas:**
@@ -36,17 +23,7 @@ El procesamiento de las consultas sigue el flujo condicional representado en `do
    * **`ABRIR_TIKECT`:** Se activa únicamente si el usuario solicita explícitamente atención por un asesor humano o realizar un reclamo formal. Redirige al nodo `abrir_ticket`.
    * **`PEDIR_INFO`:** Se activa si la entrada del usuario es ambigua, incompleta o requiere mayor precisión. Redirige al nodo `pedir_info`.
 3. **`auto_resolver` ➔ `__end__`:** Ejecuta la búsqueda vectorial en FAISS (`index.faiss`), recupera los fragmentos normativos más relevantes, genera la respuesta mediante Gemini citando las páginas correspondientes y finaliza con estado `ok`.
-
 ---
-
-## 🎥 Demostración del Aplicativo
-
-Puedes visualizar el funcionamiento en vivo del aplicativo, la interacción en la interfaz y la respuesta del grafo a través del video de demostración incluido en el proyecto:
-
-🎬 **Video de presentación:** `documents/Presentación1.mp4`
-
----
-
 ## 📂 Estructura Completa del Proyecto
 
 ```text
@@ -120,9 +97,9 @@ Puedes visualizar el funcionamiento en vivo del aplicativo, la interacción en l
 ├── .env                                     # Variables de entorno local
 ├── README.md
 └── requirements.txt                         # Dependencias del proyecto
-
+```
+---
 🛠️ Tecnologías Utilizadas
-
     Lenguaje: Python 3.10+
     Arquitectura: MVC + Clean Architecture + Factory Pattern
     Orquestador de Agentes: LangGraph, LangChain
@@ -132,7 +109,7 @@ Puedes visualizar el funcionamiento en vivo del aplicativo, la interacción en l
     Lector PDF: PyMuPDF (fitz)
     Frontend: Streamlit
     Pruebas: Pytest
-
+---
 💻 Guía Paso a Paso: Instalación, Ejecución y Pruebas
 1. Clonar el Repositorio Git
 ```bash
@@ -141,53 +118,39 @@ git clone [https://github.com/Inn3fable/AgenteJuntosIA](https://github.com/Inn3f
 ```bash
 cd AgenteJuntosIA
 ```
-
 2. Crear el Entorno Virtual
 ```bash
 python3 -m venv .AgenteJuntosIA-env
 ```
-
 3. Activar el Entorno Virtual
 # Para Linux / macOS:
 ```bash
 source .AgenteJuntosIA-env/bin/activate
 ```
-
 # Para Windows (PowerShell / CMD):
 # .AgenteJuntosIA-env\Scripts\activate
-
 4. Actualizar Pip e Instalar Dependencias
 ```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
-
 5. Configurar el Archivo de Variables de Entorno (.env)
-
 Crea un archivo llamado .env en el directorio raíz ejecutando:
 ```bash
 cat <<EOT> .env
 GEMINI_API_KEY=tu_api_key_de_gemini_aqui
-GEMINI_MODEL=gemini-3.1-flash-lite
-EMBEDDING_MODEL=BAAI/bge-m3
-DEVICE=cpu
-NORMALIZE_EMBEDDINGS=True
-TOP_K=8
-EOT
 ```
-
 (Reemplaza tu_api_key_de_gemini_aqui con tu API Key real de Google AI Studio).
 6. Ejecutar la Suite de Pruebas Unitarias
-
 Para verificar el funcionamiento de los nodos, estado, enrutadores y componentes del backend:
 ```bash
 pytest tests/
-
+```
 7. Iniciar la Aplicación Frontend (Streamlit)
 ```bash
 python -m streamlit run frontend/app.py
 ```
-
+---
 Abre en tu navegador la dirección indicada en la consola (por defecto: http://localhost:8501).
 🚀 Guía Paso a Paso: Despliegue (Deploy) en Streamlit Community Cloud
 Paso 1: Subir Cambios al Repositorio Git
@@ -198,7 +161,6 @@ git add .
 git commit -m "feat: configuracion lista para despliegue en streamlit cloud"
 git push origin main
 ```
-
 Paso 2: Crear la Aplicación en Streamlit Cloud
     Accede a share.streamlit.io e inicia sesión con tu cuenta de GitHub.
     Haz clic en el botón "New app".
@@ -206,19 +168,24 @@ Paso 2: Crear la Aplicación en Streamlit Cloud
         Repository: tu-usuario/AgenteJuntosIA
         Branch: main
         Main file path: frontend/app.py
-
 Paso 3: Configurar Secretos del Servidor (Secrets)
     Antes de realizar el despliegue, abre el menú Advanced settings ➔ Secrets.
     Ingresa tus credenciales en formato TOML:
-    ```bash
+```bash
 Ini, TOML
-
 GEMINI_API_KEY = "tu_api_key_de_gemini_aqui"
-GEMINI_MODEL = "gemini-3.1-flash-lite"
-EMBEDDING_MODEL = "BAAI/bge-m3"
-DEVICE = "cpu"
-NORMALIZE_EMBEDDINGS = "True"
-TOP_K = "8"
+```
+    Haz clic en Deploy!. Streamlit compilará e instalará automáticamente todas las dependencias definidas en requirements.txt y lanzará la aplicación de forma pública.
+
+## 🎥 Demostración del Aplicativo
+
+Puedes visualizar el funcionamiento en vivo del aplicativo, la interacción en la interfaz y la respuesta del grafo a través del video de demostración incluido en el proyecto:
+
+🎬 **Video de presentación:** `./documents/Presentación1.mp4`
+
+```bash
+https://juntosia.streamlit.app/
 ```
 
-    Haz clic en Deploy!. Streamlit compilará e instalará automáticamente todas las dependencias definidas en requirements.txt y lanzará la aplicación de forma pública.
+
+
