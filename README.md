@@ -14,8 +14,8 @@ El proyecto adopta un enfoque **Modelo-Vista-Controlador (MVC)** enriquecido con
 * **Grafo de Estado (`backend/graph`):** Define los nodos, clasificadores y rutas de decisión condicionales bajo **LangGraph**.
 ---
 ## 📐 Flujo del Agente RAG (LangGraph)
-El procesamiento de las consultas sigue el flujo condicional representado en `documents/ModeloRag.png`:
-![Diagrama del Modelo RAG](./documents/modelo_rag.png)
+El procesamiento de las consultas sigue el flujo condicional representado:
+![Diagrama del Modelo RAG](documents/modelo_rag.png)
 ### Explicación de los Nodos del Grafo:
 1. **`__start__` ➔ `triaje`:** El nodo de triaje evalúa la intención de la consulta ingresada por el usuario.
 2. **Evaluación de Rutas:**
@@ -181,11 +181,8 @@ GEMINI_API_KEY = "tu_api_key_de_gemini_aqui"
 
 Puedes visualizar el funcionamiento en vivo del aplicativo, la interacción en la interfaz y la respuesta del grafo a través del video de demostración incluido en el proyecto:
 
-🎬 **Video de presentación:** `./documents/Presentación1.mp4`
-
+🎬 **Video de presentación:**.
 ```bash
 https://juntosia.streamlit.app/
 ```
-
-
-
+![Demostración del aplicativo](documents/Presentación1.gif)
