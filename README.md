@@ -15,7 +15,7 @@ El proyecto adopta un enfoque **Modelo-Vista-Controlador (MVC)** enriquecido con
 ---
 ## 📐 Flujo del Agente RAG (LangGraph)
 El procesamiento de las consultas sigue el flujo condicional representado:
-![Diagrama del Modelo RAG](documents/modelo_rag.png)
+![Diagrama del Modelo RAG](https://raw.githubusercontent.com/Inn3fable/AgenteJuntosIA/refs/heads/main/documents/ModeloRag.png)
 ### Explicación de los Nodos del Grafo:
 1. **`__start__` ➔ `triaje`:** El nodo de triaje evalúa la intención de la consulta ingresada por el usuario.
 2. **Evaluación de Rutas:**
@@ -185,4 +185,4 @@ Puedes visualizar el funcionamiento en vivo del aplicativo, la interacción en l
 ```bash
 https://juntosia.streamlit.app/
 ```
-![Demostración del aplicativo](documents/Presentación1.gif)
+![Demostración del aplicativo](https://raw.githubusercontent.com/Inn3fable/AgenteJuntosIA/refs/heads/main/documents/Captura2.PNG)
